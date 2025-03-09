@@ -510,7 +510,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const colorId = args.product_color_id;
         const sessionId = args.session_id;
         const customerId = args.customer_id;
-        const gender = args.customer_gender;
+        // Don't pass gender by default - this parameter should be explicitly set only when needed
+        const gender = args.customer_gender !== undefined ? args.customer_gender : undefined;
         const apiVersion = args.api_version;
         
         logger.error(`Getting complete the look for product ${productId}${colorId ? ` (color: ${colorId})` : ''}`);
@@ -625,7 +626,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const colorId = args.product_color_id;
         const sessionId = args.session_id;
         const customerId = args.customer_id;
-        const gender = args.customer_gender;
+        // Don't pass gender by default - this parameter should be explicitly set only when needed
+        const gender = args.customer_gender !== undefined ? args.customer_gender : undefined;
         const apiVersion = args.api_version;
         
         logger.error(`Getting visually similar products for ${productId}, limit: ${limit}, offset: ${offset}`);

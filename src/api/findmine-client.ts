@@ -194,6 +194,7 @@ export class FindMineClient {
     } = {}
   ): Promise<CompleteTheLookResponse> {
     const apiVersion = options.apiVersion || this.config.apiVersion;
+    // Create request parameters, only including gender if explicitly provided
     const params: CompleteTheLookRequest = {
       ...this.createBaseRequest(sessionId, options.customerId),
       product_id: productId,
@@ -201,8 +202,12 @@ export class FindMineClient {
       product_in_stock: inStock,
       product_on_sale: onSale,
       return_pdp_item: options.returnPdpItem,
-      customer_gender: options.gender,
     };
+    
+    // Only add gender param if explicitly provided
+    if (options.gender !== undefined) {
+      params.customer_gender = options.gender;
+    }
 
     return this.makeRequest<CompleteTheLookResponse>(
       `/api/${apiVersion}/complete-the-look`,
@@ -227,14 +232,19 @@ export class FindMineClient {
     } = {}
   ): Promise<VisuallySimilarResponse> {
     const apiVersion = options.apiVersion || this.config.apiVersion;
+    // Create request parameters, only including gender if explicitly provided
     const params: VisuallySimilarRequest = {
       ...this.createBaseRequest(sessionId, options.customerId),
       product_id: productId,
       product_color_id: options.colorId,
       limit: options.limit,
       offset: options.offset,
-      customer_gender: options.gender,
     };
+    
+    // Only add gender param if explicitly provided
+    if (options.gender !== undefined) {
+      params.customer_gender = options.gender;
+    }
 
     return this.makeRequest<VisuallySimilarResponse>(
       `/api/${apiVersion}/visually-similar`,

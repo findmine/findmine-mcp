@@ -4,7 +4,7 @@
   "description": "MCP server for FindMine's styling and outfitting recommendations",
   "type": "module",
   "bin": {
-    "findmine-mcp": "./build/index.js"
+    "findmine-mcp": "build/index.js"
   },
   "main": "./build/index.js",
   "files": [
@@ -28,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/findmine/findmine-mcp"
+    "url": "git+https://github.com/findmine/findmine-mcp.git"
   },
   "keywords": [
     "findmine",
