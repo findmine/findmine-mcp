@@ -1,6 +1,6 @@
 {
   "name": "findmine-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for FindMine's styling and outfitting recommendations",
   "type": "module",
   "bin": {
@@ -8,7 +8,9 @@
   },
   "main": "./build/index.js",
   "files": [
-    "build"
+    "build",
+    "CLAUDE.md",
+    "CONTRIBUTING.md"
   ],
   "scripts": {
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
@@ -17,11 +19,11 @@
     "inspector": "npx @modelcontextprotocol/inspector build/index.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "0.6.0"
+    "@modelcontextprotocol/sdk": "0.6.0",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
-    "node-fetch": "^3.3.2",
     "typescript": "^5.3.3"
   },
   "repository": {
