@@ -1,12 +1,12 @@
 {
-  "name": "FindMine Shopping Stylist",
+  "name": "findmine-mcp",
   "version": "0.1.0",
-  "description": "MCP server for FindMine&#39;s styling and outfitting recommendations",
-  "private": true,
+  "description": "MCP server for FindMine's styling and outfitting recommendations",
   "type": "module",
   "bin": {
-    "FindMine Shopping Stylist": "./build/index.js"
+    "findmine-mcp": "./build/index.js"
   },
+  "main": "./build/index.js",
   "files": [
     "build"
   ],
@@ -22,5 +22,27 @@
   "devDependencies": {
     "@types/node": "^20.11.24",
     "typescript": "^5.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/findmine/findmine-mcp"
+  },
+  "keywords": [
+    "findmine",
+    "mcp",
+    "claude",
+    "anthropic",
+    "stylist",
+    "fashion",
+    "recommendations"
+  ],
+  "author": "FindMine",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/findmine/findmine-mcp/issues"
+  },
+  "homepage": "https://github.com/findmine/findmine-mcp#readme",
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

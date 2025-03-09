@@ -21,8 +21,6 @@ This MCP server connects to FindMine's styling API and exposes its functionality
 - **get_style_guide**: Access detailed fashion advice and styling guidelines
 - **get_complete_the_look**: Get outfit recommendations for a product
 - **get_visually_similar**: Find visually similar products
-- **track_interaction**: Track user interactions with products (optional)
-- **update_item_details**: Update product stock and sale status (optional)
 
 ### Prompts
 - **outfit_completion**: Get styling advice for complete outfits
@@ -31,7 +29,30 @@ This MCP server connects to FindMine's styling API and exposes its functionality
 
 ## Installation
 
+### Option 1: Install from npm
+
 ```bash
+# Install and run directly (recommended)
+npx findmine-mcp
+
+# Or install globally
+npm install -g findmine-mcp
+findmine-mcp
+```
+
+### Option 2: Run with Docker
+
+```bash
+docker run -e FINDMINE_APP_ID=your_app_id findmine/mcp-server:latest
+```
+
+### Option 3: Clone and build from source
+
+```bash
+# Clone the repository
+git clone https://github.com/findmine/findmine-mcp.git
+cd findmine-mcp
+
 # Install dependencies
 npm install
 
@@ -55,8 +76,6 @@ npm run watch
 | `FINDMINE_DEFAULT_LANGUAGE` | Default language code | en |
 | `FINDMINE_CACHE_ENABLED` | Enable response caching | true |
 | `FINDMINE_CACHE_TTL_MS` | Cache time-to-live in ms | 3600000 (1 hour) |
-| `FINDMINE_ENABLE_TRACKING` | Enable tracking features | false |
-| `FINDMINE_ENABLE_ITEM_UPDATES` | Enable item updates | false |
 | `NODE_ENV` | Set to "development" for sample data | - |
 
 ## Usage with Claude Desktop
@@ -93,6 +112,45 @@ Run the server with sample data:
 NODE_ENV=development npm run build && node build/index.js
 ```
 
+### Customizing the Style Guide
+
+The style guide can be customized to match your brand's specific styling philosophies and fashion guidance. To customize the style guide:
+
+1. Locate the style guides in `src/index.ts` (search for `styleGuides`)
+2. Modify the content for each category (`general`, `color_theory`, `body_types`, etc.)
+3. Add new categories by extending the `styleGuides` object
+4. Customize occasion-specific and seasonal advice
+
+Example of adding a custom style guide category:
+
+```typescript
+// In src/index.ts
+const styleGuides: Record<string, string> = {
+  // Existing categories...
+  
+  // Add your custom category
+  your_brand_style: `# Your Brand Style Guide
+  
+## Brand Aesthetic
+- Key elements of your brand's visual identity
+- Core style principles
+- Signature looks and combinations
+
+## Your Brand's Styling Do's
+- Brand-specific styling recommendations
+- Preferred color combinations
+- Signature styling techniques
+
+## Your Brand's Styling Don'ts
+- Combinations to avoid
+- Styling approaches that don't align with brand identity
+- Common styling mistakes to avoid
+`
+};
+```
+
+For complete customization, you can modify the entire `get_style_guide` handler in `src/index.ts`.
+
 ### Project Structure
 
 - `src/index.ts`: Main MCP server implementation
@@ -122,8 +180,7 @@ NODE_ENV=development npm run build && node build/index.js
   "name": "get_complete_the_look",
   "arguments": {
     "product_id": "P12345",
-    "in_stock": true,
-    "on_sale": false
+    "product_color_id": "C789"
   }
 }
 ```
@@ -135,9 +192,38 @@ NODE_ENV=development npm run build && node build/index.js
   "name": "get_visually_similar",
   "arguments": {
     "product_id": "P12345",
+    "product_color_id": "C789",
     "limit": 5
   }
 }
+```
+
+## Publishing
+
+### Publishing to npm
+
+```bash
+# Login to npm
+npm login
+
+# Publish the package
+npm publish
+
+# Update the version for future releases
+npm version patch
+```
+
+### Publishing to Docker Hub
+
+```bash
+# Build the Docker image
+docker build -t findmine/mcp-server:latest .
+
+# Login to Docker Hub
+docker login
+
+# Push the image
+docker push findmine/mcp-server:latest
 ```
 
 ## License
