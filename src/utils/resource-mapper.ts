@@ -38,13 +38,30 @@ export function mapProductToResource(product: FindMineProduct): ProductResource 
  * Convert a FindMine look to an MCP look resource
  */
 export function mapLookToResource(look: FindMineLook): LookResource {
+  // Get the look ID (different API versions might use different field names)
+  const lookId = look.look_id || look.id || `unknown-${Math.random().toString().slice(2, 8)}`;
+  
+  // Extract product IDs from the look - handle different API response formats
+  let productIds: string[] = [];
+  
+  if (look.products && Array.isArray(look.products)) {
+    // If we have a products array, extract IDs
+    productIds = look.products.map(product => product.product_id || '').filter(Boolean);
+  } else if (look.items && Array.isArray(look.items)) {
+    // If we have an items array, extract IDs
+    productIds = look.items.map(item => item.product_id || item.item_id || '').filter(Boolean);
+  } else if (look.order && Array.isArray(look.order)) {
+    // If we have an order array, use those IDs directly
+    productIds = look.order.filter(Boolean);
+  }
+  
   return {
-    id: look.look_id,
-    title: look.title || `Look ${look.look_id}`,
+    id: lookId,
+    title: look.title || `Look ${lookId}`,
     description: look.description,
     url: look.url,
     imageUrl: look.image_url,
-    productIds: look.products.map(product => product.product_id),
+    productIds: productIds,
     attributes: look.attributes,
   };
 }

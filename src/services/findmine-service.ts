@@ -131,14 +131,33 @@ export class FindMineService {
 
     const looks: LookResource[] = [];
     for (const look of response.looks) {
-      const lookResource = mapLookToResource(look);
-      this.resources.looks[lookResource.id] = lookResource;
-      looks.push(lookResource);
+      try {
+        const lookResource = mapLookToResource(look);
+        this.resources.looks[lookResource.id] = lookResource;
+        looks.push(lookResource);
 
-      // Store all products from the look
-      for (const product of look.products) {
-        const productResource = mapProductToResource(product);
-        this.resources.products[productResource.id] = productResource;
+        // Store all products from the look - handle different API formats
+        const products = look.products || look.items || [];
+        if (Array.isArray(products)) {
+          for (const product of products) {
+            try {
+              if (product && product.product_id) {
+                const productResource = mapProductToResource(product);
+                this.resources.products[productResource.id] = productResource;
+              }
+            } catch (productError) {
+              if (process.env.FINDMINE_DEBUG === 'true') {
+                console.error(`[FindMineService] Error mapping product in look ${lookResource.id}:`, productError);
+              }
+              // Continue with next product even if one fails
+            }
+          }
+        }
+      } catch (lookError) {
+        if (process.env.FINDMINE_DEBUG === 'true') {
+          console.error(`[FindMineService] Error mapping look:`, lookError);
+        }
+        // Continue with next look even if one fails
       }
     }
 

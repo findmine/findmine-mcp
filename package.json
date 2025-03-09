@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
+    "node-fetch": "^3.3.2",
     "typescript": "^5.3.3"
   },
   "repository": {

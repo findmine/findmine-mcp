@@ -64,9 +64,13 @@ export interface AnalyticsRequest extends FindMineBaseRequest {
 
 /**
  * Product information returned by the FindMine API
+ * 
+ * Note: Different API versions may use different field names.
+ * Some versions might use "item_id" instead of "product_id".
  */
 export interface FindMineProduct {
   product_id: string;
+  item_id?: string; // Alternative name for product_id
   product_color_id?: string;
   name: string;
   description?: string;
@@ -83,14 +87,25 @@ export interface FindMineProduct {
 
 /**
  * Look information returned by the Complete The Look API
+ * 
+ * Note: The actual API response may include variation on fields. For example:
+ * - It could have a "look_id" field instead of "id" 
+ * - It could have "items" array instead of "products"
+ * - It could have "order" array with item_ids
  */
 export interface FindMineLook {
-  look_id: string;
+  // Support both naming conventions in API responses
+  look_id?: string;
+  id?: string;
   title?: string;
   description?: string;
   url?: string;
   image_url?: string;
-  products: FindMineProduct[];
+  // Support both "products" array and "items" + "order" pattern
+  products?: FindMineProduct[];
+  items?: FindMineProduct[]; // Alternative name for products
+  order?: string[]; // Array of item_ids in order
+  featured?: number;
   attributes?: Record<string, any>;
 }
 

@@ -68,10 +68,20 @@ export class FindMineClient {
       body = JSON.stringify(params);
     }
 
+    // Print request info to stderr for debugging
+    if (process.env.FINDMINE_DEBUG === 'true') {
+      console.error(`[FindMineClient] ${method} ${url}`);
+      console.error(`[FindMineClient] Params: ${JSON.stringify(params)}`);
+    }
+
     // Try the request with retries
     let lastError: Error | null = null;
     for (let attempt = 0; attempt <= this.config.retryCount!; attempt++) {
       try {
+        if (process.env.FINDMINE_DEBUG === 'true') {
+          console.error(`[FindMineClient] Request attempt ${attempt + 1} of ${this.config.retryCount! + 1}`);
+        }
+
         const response = await fetch(url, {
           method,
           headers: {
@@ -81,17 +91,68 @@ export class FindMineClient {
           body: method === 'POST' ? body : undefined,
         });
 
-        const data = await response.json();
+        // Get response as text first to help with debugging
+        const responseText = await response.text();
+        
+        // Print response info to stderr for debugging
+        if (process.env.FINDMINE_DEBUG === 'true') {
+          console.error(`[FindMineClient] Response status: ${response.status} ${response.statusText}`);
+          console.error(`[FindMineClient] Response body: ${responseText.substring(0, 500)}${responseText.length > 500 ? '...' : ''}`);
+        }
+
+        // Parse as JSON (if valid)
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          throw new Error(`Failed to parse API response as JSON: ${responseText.substring(0, 100)}...`);
+        }
 
         if (!response.ok) {
-          throw new Error(
-            `FindMine API error: ${(data as FindMineErrorResponse).error.message}`
-          );
+          const errorMessage = data && data.error && data.error.message 
+            ? data.error.message 
+            : 'Unknown error';
+          throw new Error(`FindMine API error: ${errorMessage}`);
+        }
+
+        // Verify and normalize the response structure for complete-the-look
+        if (endpoint.includes('complete-the-look')) {
+          // Ensure the response has a looks array
+          if (!data.looks || !Array.isArray(data.looks)) {
+            console.error('[FindMineClient] Warning: API returned response without looks array:', data);
+            data.looks = [];
+          }
+          
+          // Process each look to normalize structure
+          data.looks = data.looks.map((look: any) => {
+            // Ensure a valid look ID
+            if (!look.look_id && look.id) {
+              look.look_id = look.id;
+            }
+            
+            // Check if we have items but no products
+            if (!look.products && look.items) {
+              // Try to extract product data
+              if (Array.isArray(look.items)) {
+                // Some API versions return items as an array of products
+                look.products = look.items;
+              } else if (typeof look.items === 'object') {
+                // Some API versions return items as a mapping of id -> product
+                look.products = Object.values(look.items);
+              }
+            }
+            
+            return look;
+          });
         }
 
         return data as T;
       } catch (error) {
         lastError = error as Error;
+        
+        if (process.env.FINDMINE_DEBUG === 'true') {
+          console.error(`[FindMineClient] Request failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
         
         // Don't wait on the last attempt
         if (attempt < this.config.retryCount!) {
