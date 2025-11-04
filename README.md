@@ -2,6 +2,10 @@
 
 A Model Context Protocol (MCP) server that integrates FindMine's powerful product styling and outfitting recommendations with Claude and other MCP-compatible applications.
 
+<a href="https://glama.ai/mcp/servers/@findmine/findmine-mcp">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@findmine/findmine-mcp/badge" alt="FindMine Shopping Stylist MCP server" />
+</a>
+
 ## Overview
 
 This MCP server connects to FindMine's styling API and exposes its functionality to Large Language Models through the Model Context Protocol. It allows users to:
