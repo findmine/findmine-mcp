@@ -13,8 +13,37 @@ import {
   ItemDetailsUpdateResponse,
   AnalyticsRequest,
   AnalyticsResponse,
-  FindMineErrorResponse
+  FindMineProduct,
 } from '../types/findmine-api.js';
+
+/**
+ * Raw look data from API before normalization
+ */
+interface RawLook {
+  look_id?: string;
+  id?: string;
+  products?: FindMineProduct[];
+  items?: FindMineProduct[] | Record<string, FindMineProduct>;
+  [key: string]: unknown;
+}
+
+/**
+ * Raw response from complete-the-look API
+ */
+interface RawCompleteTheLookResponse {
+  looks?: RawLook[];
+  pdp_item?: FindMineProduct;
+  [key: string]: unknown;
+}
+
+/**
+ * Raw error response from API
+ */
+interface RawErrorResponse {
+  error?: {
+    message?: string;
+  };
+}
 
 /**
  * Configuration for the FindMine API client
@@ -50,17 +79,21 @@ export class FindMineClient {
   private async makeRequest<T>(
     endpoint: string,
     method: 'GET' | 'POST',
-    params: Record<string, any>
+    params: object
   ): Promise<T> {
     let url = `${this.config.apiBaseUrl}${endpoint}`;
     let body: string | undefined;
-    
+
     // Build URL for GET requests, or request body for POST
     if (method === 'GET') {
       const queryParams = new URLSearchParams();
-      for (const [key, value] of Object.entries(params)) {
-        if (value !== undefined) {
-          queryParams.append(key, String(value));
+      const entries = Object.entries(params) as Array<[string, unknown]>;
+      for (const [key, value] of entries) {
+        if (value !== undefined && value !== null) {
+          // Convert primitives safely; skip objects/arrays in query params
+          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            queryParams.append(key, String(value));
+          }
         }
       }
       url = `${url}?${queryParams.toString()}`;
@@ -75,88 +108,108 @@ export class FindMineClient {
     }
 
     // Try the request with retries
+    const retryCount = this.config.retryCount ?? 3;
     let lastError: Error | null = null;
-    for (let attempt = 0; attempt <= this.config.retryCount!; attempt++) {
+    for (let attempt = 0; attempt <= retryCount; attempt++) {
       try {
         if (process.env.FINDMINE_DEBUG === 'true') {
-          console.error(`[FindMineClient] Request attempt ${attempt + 1} of ${this.config.retryCount! + 1}`);
+          console.error(
+            `[FindMineClient] Request attempt ${String(attempt + 1)} of ${String(retryCount + 1)}`
+          );
         }
 
         const response = await fetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            Accept: 'application/json',
           },
           body: method === 'POST' ? body : undefined,
         });
 
         // Get response as text first to help with debugging
         const responseText = await response.text();
-        
+
         // Print response info to stderr for debugging
         if (process.env.FINDMINE_DEBUG === 'true') {
-          console.error(`[FindMineClient] Response status: ${response.status} ${response.statusText}`);
-          console.error(`[FindMineClient] Response body: ${responseText.substring(0, 500)}${responseText.length > 500 ? '...' : ''}`);
+          console.error(
+            `[FindMineClient] Response status: ${String(response.status)} ${response.statusText}`
+          );
+          console.error(
+            `[FindMineClient] Response body: ${responseText.substring(0, 500)}${responseText.length > 500 ? '...' : ''}`
+          );
         }
 
         // Parse as JSON (if valid)
-        let data;
+        let data: unknown;
         try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          throw new Error(`Failed to parse API response as JSON: ${responseText.substring(0, 100)}...`);
+          data = JSON.parse(responseText) as unknown;
+        } catch {
+          throw new Error(
+            `Failed to parse API response as JSON: ${responseText.substring(0, 100)}...`
+          );
         }
 
         if (!response.ok) {
-          const errorMessage = data && data.error && data.error.message 
-            ? data.error.message 
-            : 'Unknown error';
+          const errorData = data as RawErrorResponse;
+          const errorMessage = errorData.error?.message ?? 'Unknown error';
           throw new Error(`FindMine API error: ${errorMessage}`);
         }
 
         // Verify and normalize the response structure for complete-the-look
         if (endpoint.includes('complete-the-look')) {
+          const ctlData = data as RawCompleteTheLookResponse;
+
           // Ensure the response has a looks array
-          if (!data.looks || !Array.isArray(data.looks)) {
-            console.error('[FindMineClient] Warning: API returned response without looks array:', data);
-            data.looks = [];
+          if (!ctlData.looks || !Array.isArray(ctlData.looks)) {
+            console.error(
+              '[FindMineClient] Warning: API returned response without looks array:',
+              ctlData
+            );
+            ctlData.looks = [];
           }
-          
+
           // Process each look to normalize structure
-          data.looks = data.looks.map((look: any) => {
+          ctlData.looks = ctlData.looks.map((look: RawLook): RawLook => {
+            const normalizedLook: RawLook = { ...look };
+
             // Ensure a valid look ID
-            if (!look.look_id && look.id) {
-              look.look_id = look.id;
+            if (!normalizedLook.look_id && normalizedLook.id) {
+              normalizedLook.look_id = normalizedLook.id;
             }
-            
+
             // Check if we have items but no products
-            if (!look.products && look.items) {
+            if (!normalizedLook.products && normalizedLook.items) {
               // Try to extract product data
-              if (Array.isArray(look.items)) {
+              if (Array.isArray(normalizedLook.items)) {
                 // Some API versions return items as an array of products
-                look.products = look.items;
-              } else if (typeof look.items === 'object') {
+                normalizedLook.products = normalizedLook.items;
+              } else if (typeof normalizedLook.items === 'object') {
                 // Some API versions return items as a mapping of id -> product
-                look.products = Object.values(look.items);
+                normalizedLook.products = Object.values(normalizedLook.items);
               }
             }
-            
-            return look;
+
+            return normalizedLook;
           });
+
+          return ctlData as T;
         }
 
         return data as T;
       } catch (error) {
         lastError = error as Error;
-        
+
         if (process.env.FINDMINE_DEBUG === 'true') {
-          console.error(`[FindMineClient] Request failed: ${error instanceof Error ? error.message : String(error)}`);
+          console.error(
+            `[FindMineClient] Request failed: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
-        
+
         // Don't wait on the last attempt
-        if (attempt < this.config.retryCount!) {
-          await new Promise(resolve => setTimeout(resolve, this.config.retryDelayMs!));
+        if (attempt < retryCount) {
+          const delayMs = this.config.retryDelayMs ?? 1000;
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
       }
     }
@@ -193,7 +246,7 @@ export class FindMineClient {
       apiVersion?: string;
     } = {}
   ): Promise<CompleteTheLookResponse> {
-    const apiVersion = options.apiVersion || this.config.apiVersion;
+    const apiVersion = options.apiVersion ?? this.config.apiVersion ?? 'v3';
     // Create request parameters, only including gender if explicitly provided
     const params: CompleteTheLookRequest = {
       ...this.createBaseRequest(sessionId, options.customerId),
@@ -203,7 +256,7 @@ export class FindMineClient {
       product_on_sale: onSale,
       return_pdp_item: options.returnPdpItem,
     };
-    
+
     // Only add gender param if explicitly provided
     if (options.gender !== undefined) {
       params.customer_gender = options.gender;
@@ -231,7 +284,7 @@ export class FindMineClient {
       apiVersion?: string;
     } = {}
   ): Promise<VisuallySimilarResponse> {
-    const apiVersion = options.apiVersion || this.config.apiVersion;
+    const apiVersion = options.apiVersion ?? this.config.apiVersion ?? 'v3';
     // Create request parameters, only including gender if explicitly provided
     const params: VisuallySimilarRequest = {
       ...this.createBaseRequest(sessionId, options.customerId),
@@ -240,7 +293,7 @@ export class FindMineClient {
       limit: options.limit,
       offset: options.offset,
     };
-    
+
     // Only add gender param if explicitly provided
     if (options.gender !== undefined) {
       params.customer_gender = options.gender;
@@ -269,10 +322,10 @@ export class FindMineClient {
       apiVersion?: string;
     } = {}
   ): Promise<ItemDetailsUpdateResponse> {
-    const apiVersion = options.apiVersion || this.config.apiVersion;
+    const apiVersion = options.apiVersion ?? this.config.apiVersion ?? 'v3';
     const params: ItemDetailsUpdateRequest = {
       ...this.createBaseRequest(sessionId, options.customerId),
-      items: items.map(item => ({
+      items: items.map((item) => ({
         product_id: item.productId,
         product_color_id: item.colorId,
         in_stock: item.inStock,
@@ -304,7 +357,7 @@ export class FindMineClient {
       apiVersion?: string;
     } = {}
   ): Promise<AnalyticsResponse> {
-    const apiVersion = options.apiVersion || this.config.apiVersion;
+    const apiVersion = options.apiVersion ?? this.config.apiVersion ?? 'v3';
     const params: AnalyticsRequest = {
       ...this.createBaseRequest(sessionId, options.customerId),
       event_type: eventType,
@@ -316,10 +369,6 @@ export class FindMineClient {
       quantity: options.quantity,
     };
 
-    return this.makeRequest<AnalyticsResponse>(
-      `/api/${apiVersion}/analytics`,
-      'POST',
-      params
-    );
+    return this.makeRequest<AnalyticsResponse>(`/api/${apiVersion}/analytics`, 'POST', params);
   }
 }
