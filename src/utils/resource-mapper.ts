@@ -3,12 +3,7 @@
  */
 
 import { FindMineProduct, FindMineLook } from '../types/findmine-api.js';
-import { 
-  ProductResource, 
-  LookResource, 
-  createProductUri, 
-  createLookUri 
-} from '../types/mcp.js';
+import { ProductResource, LookResource, createProductUri, createLookUri } from '../types/mcp.js';
 import { formatPrice } from './formatters.js';
 
 /**
@@ -40,21 +35,21 @@ export function mapProductToResource(product: FindMineProduct): ProductResource 
 export function mapLookToResource(look: FindMineLook): LookResource {
   // Get the look ID (different API versions might use different field names)
   const lookId = look.look_id || look.id || `unknown-${Math.random().toString().slice(2, 8)}`;
-  
+
   // Extract product IDs from the look - handle different API response formats
   let productIds: string[] = [];
-  
+
   if (look.products && Array.isArray(look.products)) {
     // If we have a products array, extract IDs
-    productIds = look.products.map(product => product.product_id || '').filter(Boolean);
+    productIds = look.products.map((product) => product.product_id || '').filter(Boolean);
   } else if (look.items && Array.isArray(look.items)) {
     // If we have an items array, extract IDs
-    productIds = look.items.map(item => item.product_id || item.item_id || '').filter(Boolean);
+    productIds = look.items.map((item) => item.product_id || item.item_id || '').filter(Boolean);
   } else if (look.order && Array.isArray(look.order)) {
     // If we have an order array, use those IDs directly
     productIds = look.order.filter(Boolean);
   }
-  
+
   return {
     id: lookId,
     title: look.title || `Look ${lookId}`,
@@ -81,9 +76,28 @@ export function getLookMimeType(): string {
 }
 
 /**
+ * Resource metadata for MCP
+ */
+export interface ResourceMetadata {
+  uri: string;
+  mimeType: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * Resource content for MCP
+ */
+export interface ResourceContent {
+  uri: string;
+  mimeType: string;
+  text: string;
+}
+
+/**
  * Convert a product resource to MCP resource metadata
  */
-export function productToResourceMetadata(product: ProductResource) {
+export function productToResourceMetadata(product: ProductResource): ResourceMetadata {
   return {
     uri: createProductUri(product.id, product.colorId),
     mimeType: getProductMimeType(),
@@ -95,7 +109,7 @@ export function productToResourceMetadata(product: ProductResource) {
 /**
  * Convert a look resource to MCP resource metadata
  */
-export function lookToResourceMetadata(look: LookResource) {
+export function lookToResourceMetadata(look: LookResource): ResourceMetadata {
   return {
     uri: createLookUri(look.id),
     mimeType: getLookMimeType(),
@@ -107,7 +121,7 @@ export function lookToResourceMetadata(look: LookResource) {
 /**
  * Convert a product resource to MCP resource content
  */
-export function productToResourceContent(product: ProductResource, uri: string) {
+export function productToResourceContent(product: ProductResource, uri: string): ResourceContent {
   return {
     uri,
     mimeType: getProductMimeType(),
@@ -118,7 +132,7 @@ export function productToResourceContent(product: ProductResource, uri: string) 
 /**
  * Convert a look resource to MCP resource content
  */
-export function lookToResourceContent(look: LookResource, uri: string) {
+export function lookToResourceContent(look: LookResource, uri: string): ResourceContent {
   return {
     uri,
     mimeType: getLookMimeType(),

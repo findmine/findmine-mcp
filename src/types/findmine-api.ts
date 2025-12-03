@@ -5,8 +5,10 @@
 
 /**
  * Base interface for all FindMine API requests
+ * Uses index signature to allow iteration over properties
  */
 export interface FindMineBaseRequest {
+  [key: string]: unknown;
   application: string;
   customer_session_id: string;
   customer_id?: string;
@@ -20,6 +22,7 @@ export interface FindMineBaseRequest {
  * Request parameters for the Complete The Look API
  */
 export interface CompleteTheLookRequest extends FindMineBaseRequest {
+  [key: string]: unknown;
   product_id: string;
   product_color_id?: string;
   product_in_stock: boolean;
@@ -31,6 +34,7 @@ export interface CompleteTheLookRequest extends FindMineBaseRequest {
  * Request parameters for the Visually Similar API
  */
 export interface VisuallySimilarRequest extends FindMineBaseRequest {
+  [key: string]: unknown;
   product_id: string;
   product_color_id?: string;
   limit?: number;
@@ -41,6 +45,7 @@ export interface VisuallySimilarRequest extends FindMineBaseRequest {
  * Request parameters for the Item Details API
  */
 export interface ItemDetailsUpdateRequest extends FindMineBaseRequest {
+  [key: string]: unknown;
   items: {
     product_id: string;
     product_color_id?: string;
@@ -53,6 +58,7 @@ export interface ItemDetailsUpdateRequest extends FindMineBaseRequest {
  * Request parameters for the Analytics API
  */
 export interface AnalyticsRequest extends FindMineBaseRequest {
+  [key: string]: unknown;
   event_type: 'view' | 'click' | 'add_to_cart' | 'purchase';
   product_id: string;
   product_color_id?: string;
@@ -64,7 +70,7 @@ export interface AnalyticsRequest extends FindMineBaseRequest {
 
 /**
  * Product information returned by the FindMine API
- * 
+ *
  * Note: Different API versions may use different field names.
  * Some versions might use "item_id" instead of "product_id".
  */
@@ -82,14 +88,14 @@ export interface FindMineProduct {
   in_stock: boolean;
   on_sale: boolean;
   category?: string;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }
 
 /**
  * Look information returned by the Complete The Look API
- * 
+ *
  * Note: The actual API response may include variation on fields. For example:
- * - It could have a "look_id" field instead of "id" 
+ * - It could have a "look_id" field instead of "id"
  * - It could have "items" array instead of "products"
  * - It could have "order" array with item_ids
  */
@@ -106,7 +112,7 @@ export interface FindMineLook {
   items?: FindMineProduct[]; // Alternative name for products
   order?: string[]; // Array of item_ids in order
   featured?: number;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }
 
 /**
@@ -154,6 +160,6 @@ export interface FindMineErrorResponse {
   error: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
 }

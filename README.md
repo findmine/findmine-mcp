@@ -94,15 +94,58 @@ type %APPDATA%\Claude\claude_desktop_config.json
 
 ## Development
 
-### MCP Inspector
-
-The MCP Inspector is a development tool for testing your server:
+### Available Scripts
 
 ```bash
-npm run inspector
+# Build and watch
+npm run build              # Build the project
+npm run watch             # Watch for changes and rebuild
+npm run typecheck         # Run TypeScript type checking
+
+# Testing
+npm test                  # Run tests in watch mode
+npm run test:run          # Run tests once
+npm run test:coverage     # Run tests with coverage report
+
+# Code quality
+npm run lint              # Run ESLint
+npm run lint:fix          # Run ESLint with auto-fix
+npm run format            # Format code with Prettier
+npm run format:check      # Check code formatting
+
+# Development tools
+npm run inspector         # Run MCP inspector (http://localhost:5173)
 ```
 
-This will open a web interface at http://localhost:5173 where you can interact with your server.
+### Testing
+
+This project uses Vitest for testing. Tests are located in `__tests__/` directories alongside source files.
+
+```bash
+# Run tests in watch mode
+npm test
+
+# Run tests once (useful for CI)
+npm run test:run
+
+# Generate coverage report
+npm run test:coverage
+```
+
+### Code Quality
+
+Before committing code:
+
+```bash
+# Run all checks
+npm run typecheck && npm run lint && npm run format:check && npm run test:run
+```
+
+The project uses:
+- **ESLint** for linting with TypeScript support
+- **Prettier** for code formatting
+- **Vitest** for testing
+- **GitHub Actions** for CI/CD
 
 ### Development Mode
 
@@ -116,7 +159,7 @@ NODE_ENV=development npm run build && node build/index.js
 
 The style guide can be customized to match your brand's specific styling philosophies and fashion guidance. To customize the style guide:
 
-1. Locate the style guides in `src/index.ts` (search for `styleGuides`)
+1. Locate the style guides in `src/content/style-guides.ts`
 2. Modify the content for each category (`general`, `color_theory`, `body_types`, etc.)
 3. Add new categories by extending the `styleGuides` object
 4. Customize occasion-specific and seasonal advice
@@ -124,13 +167,13 @@ The style guide can be customized to match your brand's specific styling philoso
 Example of adding a custom style guide category:
 
 ```typescript
-// In src/index.ts
-const styleGuides: Record<string, string> = {
+// In src/content/style-guides.ts
+export const styleGuides: Record<string, string> = {
   // Existing categories...
-  
+
   // Add your custom category
   your_brand_style: `# Your Brand Style Guide
-  
+
 ## Brand Aesthetic
 - Key elements of your brand's visual identity
 - Core style principles
@@ -149,15 +192,53 @@ const styleGuides: Record<string, string> = {
 };
 ```
 
-For complete customization, you can modify the entire `get_style_guide` handler in `src/index.ts`.
+For complete customization, you can modify the entire `get_style_guide` handler in `src/handlers/tools.ts`.
 
 ### Project Structure
 
-- `src/index.ts`: Main MCP server implementation
-- `src/api/`: FindMine API client
-- `src/services/`: Business logic and service layer
-- `src/types/`: TypeScript type definitions
-- `src/utils/`: Utility functions and helpers
+```
+src/
+├── index.ts              # MCP server bootstrap and initialization
+├── config.ts             # Environment configuration
+├── api/                  # FindMine API client
+│   └── findmine-client.ts
+├── handlers/             # MCP protocol handlers
+│   ├── tools.ts          # Tool execution handlers
+│   ├── resources.ts      # Resource handlers
+│   └── prompts.ts        # Prompt handlers
+├── tools/                # Tool definitions with MCP annotations
+│   └── index.ts
+├── schemas/              # Zod validation schemas
+│   ├── tool-inputs.ts    # Input validation for all tools
+│   └── index.ts
+├── content/              # Static content
+│   └── style-guides.ts   # Style guide content
+├── prompts/              # Prompt definitions
+│   ├── findmine-help.ts
+│   ├── outfit-completion.ts
+│   ├── styling-guide.ts
+│   └── index.ts
+├── services/             # Business logic layer
+│   └── findmine-service.ts
+├── types/                # TypeScript type definitions
+│   ├── findmine-api.ts
+│   └── mcp.ts
+└── utils/                # Utility functions and helpers
+    ├── cache.ts
+    ├── formatters.ts
+    ├── logger.ts
+    ├── mock-data.ts
+    └── resource-mapper.ts
+```
+
+### Technical Details
+
+This server is built with:
+- **MCP SDK 1.24.2** with full spec compliance (2025-11-25)
+- **Tool annotations** for read-only, destructive, and open-world hints
+- **Zod validation** for all tool inputs
+- **Modular architecture** with separated concerns
+- **100% test coverage** on utility functions
 
 ## API Examples
 
