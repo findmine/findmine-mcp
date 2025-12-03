@@ -23,8 +23,8 @@ export const sampleProducts: FindMineProduct[] = [
     attributes: {
       color: 'Blue',
       material: 'Cotton',
-      pattern: 'Solid'
-    }
+      pattern: 'Solid',
+    },
   },
   {
     product_id: 'P12346',
@@ -40,8 +40,8 @@ export const sampleProducts: FindMineProduct[] = [
     attributes: {
       color: 'Khaki',
       material: 'Cotton',
-      fit: 'Slim'
-    }
+      fit: 'Slim',
+    },
   },
   {
     product_id: 'P12347',
@@ -57,8 +57,8 @@ export const sampleProducts: FindMineProduct[] = [
     attributes: {
       color: 'Brown',
       material: 'Leather',
-      style: 'Derby'
-    }
+      style: 'Derby',
+    },
   },
   {
     product_id: 'P12348',
@@ -75,8 +75,8 @@ export const sampleProducts: FindMineProduct[] = [
     attributes: {
       color: 'Brown',
       material: 'Leather',
-      width: '1.5 inches'
-    }
+      width: '1.5 inches',
+    },
   },
   {
     product_id: 'P12349',
@@ -92,9 +92,9 @@ export const sampleProducts: FindMineProduct[] = [
     attributes: {
       color: 'Navy',
       material: 'Cotton',
-      style: 'Crew Neck'
-    }
-  }
+      style: 'Crew Neck',
+    },
+  },
 ];
 
 /**
@@ -109,8 +109,8 @@ export const sampleLooks: FindMineLook[] = [
     products: [sampleProducts[0], sampleProducts[1], sampleProducts[2], sampleProducts[3]],
     attributes: {
       occasion: ['Office', 'Business Casual'],
-      season: ['Spring', 'Fall']
-    }
+      season: ['Spring', 'Fall'],
+    },
   },
   {
     look_id: 'L1002',
@@ -120,8 +120,8 @@ export const sampleLooks: FindMineLook[] = [
     products: [sampleProducts[0], sampleProducts[1], sampleProducts[3]],
     attributes: {
       occasion: ['Casual', 'Brunch'],
-      season: ['Spring', 'Summer']
-    }
+      season: ['Spring', 'Summer'],
+    },
   },
   {
     look_id: 'L1003',
@@ -131,9 +131,9 @@ export const sampleLooks: FindMineLook[] = [
     products: [sampleProducts[4], sampleProducts[1], sampleProducts[2], sampleProducts[3]],
     attributes: {
       occasion: ['Smart Casual', 'Dinner'],
-      season: ['Fall', 'Winter']
-    }
-  }
+      season: ['Fall', 'Winter'],
+    },
+  },
 ];
 
 /**
@@ -141,5 +141,5 @@ export const sampleLooks: FindMineLook[] = [
  */
 export const sampleCompleteTheLookResponse: CompleteTheLookResponse = {
   pdp_item: sampleProducts[0],
-  looks: sampleLooks
+  looks: sampleLooks,
 };

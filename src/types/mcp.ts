@@ -20,7 +20,7 @@ export interface ProductResource {
   inStock: boolean;
   onSale: boolean;
   category?: string;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }
 
 /**
@@ -33,7 +33,7 @@ export interface LookResource {
   url?: string;
   imageUrl?: string;
   productIds: string[];
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }
 
 /**

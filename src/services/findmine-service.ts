@@ -6,21 +6,14 @@
 import { FindMineClient } from '../api/findmine-client.js';
 import { Cache } from '../utils/cache.js';
 import { config } from '../config.js';
-import { 
-  CompleteTheLookResponse, 
+import {
+  CompleteTheLookResponse,
   VisuallySimilarResponse,
   AnalyticsResponse,
-  ItemDetailsUpdateResponse
+  ItemDetailsUpdateResponse,
 } from '../types/findmine-api.js';
-import {
-  mapProductToResource,
-  mapLookToResource
-} from '../utils/resource-mapper.js';
-import {
-  ProductResource,
-  LookResource,
-  ResourceStore
-} from '../types/mcp.js';
+import { mapProductToResource, mapLookToResource } from '../utils/resource-mapper.js';
+import { ProductResource, LookResource, ResourceStore } from '../types/mcp.js';
 
 /**
  * FindMine service class
@@ -71,7 +64,7 @@ export class FindMineService {
   }> {
     const sessionId = options.sessionId || config.session.defaultSessionId;
     const useCache = options.useCache !== false && config.cache.enabled;
-    
+
     // Create cache key
     const cacheKey = Cache.createKey([
       'completeTheLook',
@@ -79,7 +72,7 @@ export class FindMineService {
       options.colorId || 'default',
       String(inStock),
       String(onSale),
-      String(options.returnPdpItem)
+      String(options.returnPdpItem),
     ]);
 
     // Try to get from cache
@@ -89,37 +82,25 @@ export class FindMineService {
       if (cached) {
         response = cached;
       } else {
-        response = await this.client.getCompleteTheLook(
-          productId,
-          inStock,
-          onSale,
-          sessionId,
-          {
-            colorId: options.colorId,
-            customerId: options.customerId,
-            returnPdpItem: options.returnPdpItem,
-            gender: options.gender,
-            apiVersion: options.apiVersion,
-          }
-        );
-        
-        // Store in cache
-        this.completeTheLookCache.set(cacheKey, response);
-      }
-    } else {
-      response = await this.client.getCompleteTheLook(
-        productId,
-        inStock,
-        onSale,
-        sessionId,
-        {
+        response = await this.client.getCompleteTheLook(productId, inStock, onSale, sessionId, {
           colorId: options.colorId,
           customerId: options.customerId,
           returnPdpItem: options.returnPdpItem,
           gender: options.gender,
           apiVersion: options.apiVersion,
-        }
-      );
+        });
+
+        // Store in cache
+        this.completeTheLookCache.set(cacheKey, response);
+      }
+    } else {
+      response = await this.client.getCompleteTheLook(productId, inStock, onSale, sessionId, {
+        colorId: options.colorId,
+        customerId: options.customerId,
+        returnPdpItem: options.returnPdpItem,
+        gender: options.gender,
+        apiVersion: options.apiVersion,
+      });
     }
 
     // Convert to internal resources
@@ -137,17 +118,21 @@ export class FindMineService {
         looks.push(lookResource);
 
         // Store all products from the look - handle different API formats
-        const products = look.products || look.items || [];
+        // Filter out any null/undefined entries that might come from the API
+        const products = (look.products || look.items || []).filter(Boolean);
         if (Array.isArray(products)) {
           for (const product of products) {
             try {
-              if (product && product.product_id) {
+              if (product.product_id) {
                 const productResource = mapProductToResource(product);
                 this.resources.products[productResource.id] = productResource;
               }
             } catch (productError) {
               if (process.env.FINDMINE_DEBUG === 'true') {
-                console.error(`[FindMineService] Error mapping product in look ${lookResource.id}:`, productError);
+                console.error(
+                  `[FindMineService] Error mapping product in look ${lookResource.id}:`,
+                  productError
+                );
               }
               // Continue with next product even if one fails
             }
@@ -188,14 +173,14 @@ export class FindMineService {
   }> {
     const sessionId = options.sessionId || config.session.defaultSessionId;
     const useCache = options.useCache !== false && config.cache.enabled;
-    
+
     // Create cache key
     const cacheKey = Cache.createKey([
       'visuallySimilar',
       productId,
       options.colorId || 'default',
       String(options.limit || 'default'),
-      String(options.offset || 'default')
+      String(options.offset || 'default'),
     ]);
 
     // Try to get from cache
@@ -205,39 +190,31 @@ export class FindMineService {
       if (cached) {
         response = cached;
       } else {
-        response = await this.client.getVisuallySimilar(
-          productId,
-          sessionId,
-          {
-            colorId: options.colorId,
-            customerId: options.customerId,
-            limit: options.limit,
-            offset: options.offset,
-            gender: options.gender,
-            apiVersion: options.apiVersion,
-          }
-        );
-        
-        // Store in cache
-        this.visuallySimilarCache.set(cacheKey, response);
-      }
-    } else {
-      response = await this.client.getVisuallySimilar(
-        productId,
-        sessionId,
-        {
+        response = await this.client.getVisuallySimilar(productId, sessionId, {
           colorId: options.colorId,
           customerId: options.customerId,
           limit: options.limit,
           offset: options.offset,
           gender: options.gender,
           apiVersion: options.apiVersion,
-        }
-      );
+        });
+
+        // Store in cache
+        this.visuallySimilarCache.set(cacheKey, response);
+      }
+    } else {
+      response = await this.client.getVisuallySimilar(productId, sessionId, {
+        colorId: options.colorId,
+        customerId: options.customerId,
+        limit: options.limit,
+        offset: options.offset,
+        gender: options.gender,
+        apiVersion: options.apiVersion,
+      });
     }
 
     // Convert to internal resources
-    const products: ProductResource[] = response.products.map(product => {
+    const products: ProductResource[] = response.products.map((product) => {
       const productResource = mapProductToResource(product);
       this.resources.products[productResource.id] = productResource;
       return productResource;
@@ -267,21 +244,16 @@ export class FindMineService {
     } = {}
   ): Promise<AnalyticsResponse> {
     const sessionId = options.sessionId || config.session.defaultSessionId;
-    
-    return this.client.trackEvent(
-      eventType,
-      productId,
-      sessionId,
-      {
-        colorId: options.colorId,
-        lookId: options.lookId,
-        sourceProductId: options.sourceProductId,
-        price: options.price,
-        quantity: options.quantity,
-        customerId: options.customerId,
-        apiVersion: options.apiVersion,
-      }
-    );
+
+    return this.client.trackEvent(eventType, productId, sessionId, {
+      colorId: options.colorId,
+      lookId: options.lookId,
+      sourceProductId: options.sourceProductId,
+      price: options.price,
+      quantity: options.quantity,
+      customerId: options.customerId,
+      apiVersion: options.apiVersion,
+    });
   }
 
   /**
@@ -301,15 +273,11 @@ export class FindMineService {
     } = {}
   ): Promise<ItemDetailsUpdateResponse> {
     const sessionId = options.sessionId || config.session.defaultSessionId;
-    
-    return this.client.updateItemDetails(
-      items,
-      sessionId,
-      {
-        customerId: options.customerId,
-        apiVersion: options.apiVersion,
-      }
-    );
+
+    return this.client.updateItemDetails(items, sessionId, {
+      customerId: options.customerId,
+      apiVersion: options.apiVersion,
+    });
   }
 
   /**

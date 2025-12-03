@@ -3,5 +3,8 @@ build/
 *.log
 .env*
 
+# Test coverage
+coverage/
+
 # Test utilities
 test-mcp.js

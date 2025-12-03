@@ -1,6 +1,6 @@
 {
   "name": "findmine-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "MCP server for FindMine's styling and outfitting recommendations",
   "type": "module",
   "bin": {
@@ -16,15 +16,32 @@
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "prepare": "npm run build",
     "watch": "tsc --watch",
-    "inspector": "npx @modelcontextprotocol/inspector build/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write 'src/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts'",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "0.6.0",
-    "node-fetch": "^3.3.2"
+    "@modelcontextprotocol/sdk": "^1.24.2",
+    "node-fetch": "^3.3.2",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@types/node": "^20.11.24",
-    "typescript": "^5.3.3"
+    "@vitest/coverage-v8": "^4.0.15",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "jiti": "^2.6.1",
+    "prettier": "^3.7.4",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.48.1",
+    "vitest": "^4.0.15"
   },
   "repository": {
     "type": "git",

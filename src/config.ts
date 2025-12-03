@@ -14,28 +14,28 @@ export interface ServerConfig {
      * API base URL
      */
     apiBaseUrl: string;
-    
+
     /**
      * FindMine application ID
      */
     applicationId: string;
-    
+
     /**
      * API version to use (optional)
      */
     apiVersion?: string;
-    
+
     /**
      * Default region (optional)
      */
     defaultRegion?: string;
-    
+
     /**
      * Default language (optional)
      */
     defaultLanguage?: string;
   };
-  
+
   /**
    * Session configuration
    */
@@ -45,7 +45,7 @@ export interface ServerConfig {
      */
     defaultSessionId: string;
   };
-  
+
   /**
    * Cache configuration
    */
@@ -54,7 +54,7 @@ export interface ServerConfig {
      * Whether to enable caching
      */
     enabled: boolean;
-    
+
     /**
      * Cache time to live in milliseconds
      */
