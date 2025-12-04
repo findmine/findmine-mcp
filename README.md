@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/findmine-findmine-mcp-badge.png)](https://mseep.ai/app/findmine-findmine-mcp)
+
 # FindMine Shopping Stylist
 
 A Model Context Protocol (MCP) server that integrates FindMine's powerful product styling and outfitting recommendations with Claude and other MCP-compatible applications.
