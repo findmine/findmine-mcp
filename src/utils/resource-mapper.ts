@@ -3,7 +3,7 @@
  */
 
 import { FindMineProduct, FindMineLook } from '../types/findmine-api.js';
-import { ProductResource, LookResource, createProductUri, createLookUri } from '../types/mcp.js';
+import { ProductResource, LookResource } from '../types/mcp.js';
 import { formatPrice } from './formatters.js';
 
 /**
@@ -58,84 +58,5 @@ export function mapLookToResource(look: FindMineLook): LookResource {
     imageUrl: look.image_url,
     productIds: productIds,
     attributes: look.attributes,
-  };
-}
-
-/**
- * Get the MIME type for a product resource
- */
-export function getProductMimeType(): string {
-  return 'application/vnd.findmine.product+json';
-}
-
-/**
- * Get the MIME type for a look resource
- */
-export function getLookMimeType(): string {
-  return 'application/vnd.findmine.look+json';
-}
-
-/**
- * Resource metadata for MCP
- */
-export interface ResourceMetadata {
-  uri: string;
-  mimeType: string;
-  name: string;
-  description: string;
-}
-
-/**
- * Resource content for MCP
- */
-export interface ResourceContent {
-  uri: string;
-  mimeType: string;
-  text: string;
-}
-
-/**
- * Convert a product resource to MCP resource metadata
- */
-export function productToResourceMetadata(product: ProductResource): ResourceMetadata {
-  return {
-    uri: createProductUri(product.id, product.colorId),
-    mimeType: getProductMimeType(),
-    name: product.name,
-    description: product.description || `Product: ${product.name}`,
-  };
-}
-
-/**
- * Convert a look resource to MCP resource metadata
- */
-export function lookToResourceMetadata(look: LookResource): ResourceMetadata {
-  return {
-    uri: createLookUri(look.id),
-    mimeType: getLookMimeType(),
-    name: look.title || `Look ${look.id}`,
-    description: look.description || `Complete the look outfit ${look.id}`,
-  };
-}
-
-/**
- * Convert a product resource to MCP resource content
- */
-export function productToResourceContent(product: ProductResource, uri: string): ResourceContent {
-  return {
-    uri,
-    mimeType: getProductMimeType(),
-    text: JSON.stringify(product, null, 2),
-  };
-}
-
-/**
- * Convert a look resource to MCP resource content
- */
-export function lookToResourceContent(look: LookResource, uri: string): ResourceContent {
-  return {
-    uri,
-    mimeType: getLookMimeType(),
-    text: JSON.stringify(look, null, 2),
   };
 }

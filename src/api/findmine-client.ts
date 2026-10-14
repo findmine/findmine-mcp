@@ -59,6 +59,15 @@ export interface FindMineClientConfig {
 }
 
 /**
+ * The FindMine API surface the service depends on. `FindMineClient` implements it;
+ * tests and embedders can inject any object with the same shape.
+ */
+export type FindMineApi = Pick<
+  FindMineClient,
+  'getCompleteTheLook' | 'getVisuallySimilar' | 'updateItemDetails' | 'trackEvent'
+>;
+
+/**
  * FindMine API client
  */
 export class FindMineClient {
@@ -91,7 +100,11 @@ export class FindMineClient {
       for (const [key, value] of entries) {
         if (value !== undefined && value !== null) {
           // Convert primitives safely; skip objects/arrays in query params
-          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          if (
+            typeof value === 'string' ||
+            typeof value === 'number' ||
+            typeof value === 'boolean'
+          ) {
             queryParams.append(key, String(value));
           }
         }

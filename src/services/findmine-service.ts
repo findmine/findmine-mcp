@@ -3,9 +3,9 @@
  * Provides access to FindMine API functionality with caching
  */
 
-import { FindMineClient } from '../api/findmine-client.js';
+import type { FindMineApi } from '../api/findmine-client.js';
 import { Cache } from '../utils/cache.js';
-import { config } from '../config.js';
+import type { ServerConfig } from '../config.js';
 import {
   CompleteTheLookResponse,
   VisuallySimilarResponse,
@@ -19,7 +19,8 @@ import { ProductResource, LookResource, ResourceStore } from '../types/mcp.js';
  * FindMine service class
  */
 export class FindMineService {
-  private client: FindMineClient;
+  private client: FindMineApi;
+  private config: ServerConfig;
   private completeTheLookCache: Cache<CompleteTheLookResponse>;
   private visuallySimilarCache: Cache<VisuallySimilarResponse>;
   private resources: ResourceStore = {
@@ -27,19 +28,13 @@ export class FindMineService {
     looks: {},
   };
 
-  constructor() {
-    // Initialize the FindMine API client
-    this.client = new FindMineClient({
-      apiBaseUrl: config.findmine.apiBaseUrl,
-      applicationId: config.findmine.applicationId,
-      apiVersion: config.findmine.apiVersion,
-      defaultRegion: config.findmine.defaultRegion,
-      defaultLanguage: config.findmine.defaultLanguage,
-    });
+  constructor(client: FindMineApi, config: ServerConfig) {
+    this.client = client;
+    this.config = config;
 
     // Initialize caches
-    this.completeTheLookCache = new Cache<CompleteTheLookResponse>(config.cache.ttlMs);
-    this.visuallySimilarCache = new Cache<VisuallySimilarResponse>(config.cache.ttlMs);
+    this.completeTheLookCache = new Cache<CompleteTheLookResponse>(this.config.cache.ttlMs);
+    this.visuallySimilarCache = new Cache<VisuallySimilarResponse>(this.config.cache.ttlMs);
   }
 
   /**
@@ -56,14 +51,13 @@ export class FindMineService {
       returnPdpItem?: boolean;
       gender?: 'M' | 'W' | 'U';
       useCache?: boolean;
-      apiVersion?: string;
     } = {}
   ): Promise<{
     product?: ProductResource;
     looks: LookResource[];
   }> {
-    const sessionId = options.sessionId || config.session.defaultSessionId;
-    const useCache = options.useCache !== false && config.cache.enabled;
+    const sessionId = options.sessionId || this.config.session.defaultSessionId;
+    const useCache = options.useCache !== false && this.config.cache.enabled;
 
     // Create cache key
     const cacheKey = Cache.createKey([
@@ -87,7 +81,6 @@ export class FindMineService {
           customerId: options.customerId,
           returnPdpItem: options.returnPdpItem,
           gender: options.gender,
-          apiVersion: options.apiVersion,
         });
 
         // Store in cache
@@ -99,7 +92,6 @@ export class FindMineService {
         customerId: options.customerId,
         returnPdpItem: options.returnPdpItem,
         gender: options.gender,
-        apiVersion: options.apiVersion,
       });
     }
 
@@ -165,14 +157,13 @@ export class FindMineService {
       offset?: number;
       gender?: 'M' | 'W' | 'U';
       useCache?: boolean;
-      apiVersion?: string;
     } = {}
   ): Promise<{
     products: ProductResource[];
     total: number;
   }> {
-    const sessionId = options.sessionId || config.session.defaultSessionId;
-    const useCache = options.useCache !== false && config.cache.enabled;
+    const sessionId = options.sessionId || this.config.session.defaultSessionId;
+    const useCache = options.useCache !== false && this.config.cache.enabled;
 
     // Create cache key
     const cacheKey = Cache.createKey([
@@ -196,7 +187,6 @@ export class FindMineService {
           limit: options.limit,
           offset: options.offset,
           gender: options.gender,
-          apiVersion: options.apiVersion,
         });
 
         // Store in cache
@@ -209,7 +199,6 @@ export class FindMineService {
         limit: options.limit,
         offset: options.offset,
         gender: options.gender,
-        apiVersion: options.apiVersion,
       });
     }
 
@@ -240,10 +229,9 @@ export class FindMineService {
       quantity?: number;
       sessionId?: string;
       customerId?: string;
-      apiVersion?: string;
     } = {}
   ): Promise<AnalyticsResponse> {
-    const sessionId = options.sessionId || config.session.defaultSessionId;
+    const sessionId = options.sessionId || this.config.session.defaultSessionId;
 
     return this.client.trackEvent(eventType, productId, sessionId, {
       colorId: options.colorId,
@@ -252,7 +240,6 @@ export class FindMineService {
       price: options.price,
       quantity: options.quantity,
       customerId: options.customerId,
-      apiVersion: options.apiVersion,
     });
   }
 
@@ -269,14 +256,12 @@ export class FindMineService {
     options: {
       sessionId?: string;
       customerId?: string;
-      apiVersion?: string;
     } = {}
   ): Promise<ItemDetailsUpdateResponse> {
-    const sessionId = options.sessionId || config.session.defaultSessionId;
+    const sessionId = options.sessionId || this.config.session.defaultSessionId;
 
     return this.client.updateItemDetails(items, sessionId, {
       customerId: options.customerId,
-      apiVersion: options.apiVersion,
     });
   }
 
@@ -308,6 +293,3 @@ export class FindMineService {
     return Object.values(this.resources.looks);
   }
 }
-
-// Create a singleton instance
-export const findMineService = new FindMineService();
