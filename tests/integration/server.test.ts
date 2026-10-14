@@ -263,8 +263,12 @@ describe.each<Era>(['legacy', 'modern'])('FindMine MCP server (%s era)', (era) =
 
 describe('update_item_details batch failure', () => {
   it('reports every item as failed and says so in the text summary', async () => {
-    // Upstream bodies are unvalidated: a rejected batch may carry nothing but `success`.
-    const rejected = { success: false } as ItemDetailsUpdateResponse;
+    // Upstream bodies are unvalidated: a rejected batch may report counts that contradict it.
+    const rejected = {
+      success: false,
+      updated_count: 0,
+      failed_count: 0,
+    } as ItemDetailsUpdateResponse;
     const client = await connect(
       makeDeps({ flags: true, responses: { itemDetails: rejected } }),
       'legacy'

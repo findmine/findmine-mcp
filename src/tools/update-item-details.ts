@@ -6,7 +6,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { FindMineDeps } from '../server.js';
 import type { ItemDetailsUpdateResponse } from '../types/findmine-api.js';
-import { optionalNumber, optionalString, toolSuccess, upstreamFailure } from './results.js';
+import { optionalString, toolSuccess, upstreamFailure } from './results.js';
 import { UpdateItemDetailsInputSchema, UpdateItemDetailsOutputSchema } from './schemas.js';
 import type { UpdateItemDetailsInput, UpdateItemDetailsOutput } from './schemas.js';
 
@@ -59,33 +59,45 @@ type ItemDetailsUpdateBody = Partial<ItemDetailsUpdateResponse> & {
 const BATCH_FAILED_REASON = 'FindMine reported the update failed';
 
 /**
- * Map the update response to one result per requested item.
- *
- * - `success: false` fails every item: nothing in the response says any item was applied.
- * - Otherwise an item fails when the response lists a failure for its product; colors
- *   must match only when both the failure and the item name one.
+ * Map the update response to one result per requested item. The per-item results are
+ * the only source of the counts; the body's own `updated_count`/`failed_count` are not
+ * read, so the counts can never contradict the results.
  */
 export function toUpdateItemDetailsOutput(
   items: UpdateItemDetailsInput['items'],
   response: ItemDetailsUpdateBody
 ): UpdateItemDetailsOutput {
+  const results = toItemResults(items, response);
+  const updatedCount = results.filter((result) => result.ok).length;
+  return {
+    results,
+    updated_count: updatedCount,
+    failed_count: results.length - updatedCount,
+  };
+}
+
+/**
+ * - `success: false` fails every item: nothing in the response says any item was applied.
+ * - Otherwise an item fails when the response lists a failure for its product; colors
+ *   must match only when both the failure and the item name one.
+ */
+function toItemResults(
+  items: UpdateItemDetailsInput['items'],
+  response: ItemDetailsUpdateBody
+): UpdateItemDetailsOutput['results'] {
   if (response.success === false) {
     const reason =
       optionalString(response.reason) ?? optionalString(response.message) ?? BATCH_FAILED_REASON;
-    return {
-      results: items.map((item) => ({
-        product_id: item.product_id,
-        product_color_id: item.product_color_id,
-        ok: false,
-        reason,
-      })),
-      updated_count: optionalNumber(response.updated_count) ?? 0,
-      failed_count: optionalNumber(response.failed_count) ?? items.length,
-    };
+    return items.map((item) => ({
+      product_id: item.product_id,
+      product_color_id: item.product_color_id,
+      ok: false,
+      reason,
+    }));
   }
 
   const failures = Array.isArray(response.failures) ? response.failures : [];
-  const results = items.map((item) => {
+  return items.map((item) => {
     const failure = failures.find(
       (candidate) =>
         candidate.product_id === item.product_id &&
@@ -102,13 +114,6 @@ export function toUpdateItemDetailsOutput(
         }
       : { product_id: item.product_id, product_color_id: item.product_color_id, ok: true };
   });
-  const failedCount = results.filter((result) => !result.ok).length;
-
-  return {
-    results,
-    updated_count: optionalNumber(response.updated_count) ?? results.length - failedCount,
-    failed_count: optionalNumber(response.failed_count) ?? failedCount,
-  };
 }
 
 function summarizeUpdate(output: UpdateItemDetailsOutput): string {

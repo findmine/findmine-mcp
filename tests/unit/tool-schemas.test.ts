@@ -318,4 +318,33 @@ describe('output mapping from unvalidated upstream data', () => {
     expect(output.updated_count).toBe(1);
     expect(output.failed_count).toBe(1);
   });
+
+  it('derives counts from the per-item results, ignoring counts in the body', () => {
+    const twoItems = [
+      { product_id: 'P1', in_stock: true, on_sale: false },
+      { product_id: 'P2', in_stock: true, on_sale: false },
+    ];
+    const rejected = toUpdateItemDetailsOutput(twoItems, {
+      success: false,
+      updated_count: 0,
+      failed_count: 0,
+    });
+    expect(rejected.results.every((result) => !result.ok)).toBe(true);
+    expect(rejected.updated_count).toBe(0);
+    expect(rejected.failed_count).toBe(2);
+
+    const overReported = toUpdateItemDetailsOutput(
+      [...twoItems, { product_id: 'P3', in_stock: false, on_sale: false }],
+      {
+        success: true,
+        updated_count: 5,
+        failed_count: 0,
+        failures: [{ product_id: 'P2', reason: 'unknown item' }],
+      }
+    );
+    expect(UpdateItemDetailsOutputSchema.safeParse(overReported).success).toBe(true);
+    expect(overReported.results.map((result) => result.ok)).toEqual([true, false, true]);
+    expect(overReported.updated_count).toBe(2);
+    expect(overReported.failed_count).toBe(1);
+  });
 });
