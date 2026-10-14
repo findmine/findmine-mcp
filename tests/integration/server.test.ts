@@ -10,6 +10,8 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import { loadConfig } from '../../src/config.js';
 import { createFindMineDeps, createFindMineServer } from '../../src/server.js';
 import type { CreateFindMineServerOptions, FindMineDeps } from '../../src/server.js';
+import { GetCompleteTheLookOutputSchema } from '../../src/tools/schemas.js';
+import type { ItemDetailsUpdateResponse } from '../../src/types/findmine-api.js';
 import {
   type FakeFindMineClient,
   type FakeResponses,
@@ -94,21 +96,34 @@ describe.each<Era>(['legacy', 'modern'])('FindMine MCP server (%s era)', (era) =
     });
 
     expect(result.isError).toBeFalsy();
+    expect(GetCompleteTheLookOutputSchema.safeParse(result.structuredContent).success).toBe(true);
     expect(result.structuredContent).toEqual({
       product: expect.objectContaining({
         product_id: 'P100',
         product_color_id: 'BLU',
         title: 'Oxford Shirt',
         formatted_price: '$79.99',
+        on_sale: false,
         uri: 'product:///P100?color=BLU',
       }),
       looks: [
         {
           look_id: 'L1',
           uri: 'look:///L1',
+          title: 'Office Ready',
+          description: 'Sharp but relaxed for the office',
+          image_url: 'https://shop.example/looks/l1.jpg',
           items: [
             expect.objectContaining({ product_id: 'P100', uri: 'product:///P100?color=BLU' }),
-            expect.objectContaining({ product_id: 'P200', uri: 'product:///P200' }),
+            expect.objectContaining({
+              product_id: 'P200',
+              price: 6999,
+              formatted_price: '$69.99',
+              sale_price: 4999,
+              formatted_sale_price: '$49.99',
+              on_sale: true,
+              uri: 'product:///P200',
+            }),
           ],
         },
       ],
@@ -243,6 +258,39 @@ describe.each<Era>(['legacy', 'modern'])('FindMine MCP server (%s era)', (era) =
     const onText = JSON.stringify((await on.getPrompt({ name: 'findmine_help' })).messages);
     expect(onText).toContain('track_interaction');
     expect(onText).toContain('update_item_details');
+  });
+});
+
+describe('update_item_details batch failure', () => {
+  it('reports every item as failed and says so in the text summary', async () => {
+    // Upstream bodies are unvalidated: a rejected batch may carry nothing but `success`.
+    const rejected = { success: false } as ItemDetailsUpdateResponse;
+    const client = await connect(
+      makeDeps({ flags: true, responses: { itemDetails: rejected } }),
+      'legacy'
+    );
+    const result = await client.callTool({
+      name: 'update_item_details',
+      arguments: {
+        items: [
+          { product_id: 'P1', in_stock: false, on_sale: false },
+          { product_id: 'P2', in_stock: true, on_sale: true },
+        ],
+      },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({
+      results: [
+        { product_id: 'P1', ok: false },
+        { product_id: 'P2', ok: false },
+      ],
+      updated_count: 0,
+      failed_count: 2,
+    });
+    expect((result.content as Array<{ text: string }>)[0].text).toBe(
+      'No items were updated; 2 failed (FindMine reported the update failed).'
+    );
   });
 });
 

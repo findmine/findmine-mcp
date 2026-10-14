@@ -78,7 +78,16 @@ export function toCompleteTheLookOutput(
       const ref = stored ? toProductRef(stored) : undefined;
       return [ref ?? { product_id: productId, title: productId, uri: createProductUri(productId) }];
     });
-    return [{ look_id: lookId, uri: createLookUri(lookId), items }];
+    return [
+      {
+        look_id: lookId,
+        uri: createLookUri(lookId),
+        title: optionalString(look.title),
+        description: optionalString(look.description),
+        image_url: optionalString(look.imageUrl),
+        items,
+      },
+    ];
   });
 
   return {

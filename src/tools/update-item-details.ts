@@ -42,28 +42,56 @@ export function registerUpdateItemDetails(server: McpServer, deps: FindMineDeps)
       }
 
       const output = toUpdateItemDetailsOutput(args.items, response);
-      return toolSuccess(
-        `Updated ${String(output.updated_count)} item(s); ${String(output.failed_count)} failed.`,
-        output
-      );
+      return toolSuccess(summarizeUpdate(output), output);
     }
   );
 }
 
 /**
- * Map the update response to one result per requested item. An item is reported as
- * failed when the response lists a failure for its product (and color, when given).
+ * The update response as received: typed fields may be absent, and a rejected batch
+ * may carry a top-level `reason` or `message`.
+ */
+type ItemDetailsUpdateBody = Partial<ItemDetailsUpdateResponse> & {
+  reason?: unknown;
+  message?: unknown;
+};
+
+const BATCH_FAILED_REASON = 'FindMine reported the update failed';
+
+/**
+ * Map the update response to one result per requested item.
+ *
+ * - `success: false` fails every item: nothing in the response says any item was applied.
+ * - Otherwise an item fails when the response lists a failure for its product; colors
+ *   must match only when both the failure and the item name one.
  */
 export function toUpdateItemDetailsOutput(
   items: UpdateItemDetailsInput['items'],
-  response: Partial<ItemDetailsUpdateResponse>
+  response: ItemDetailsUpdateBody
 ): UpdateItemDetailsOutput {
+  if (response.success === false) {
+    const reason =
+      optionalString(response.reason) ?? optionalString(response.message) ?? BATCH_FAILED_REASON;
+    return {
+      results: items.map((item) => ({
+        product_id: item.product_id,
+        product_color_id: item.product_color_id,
+        ok: false,
+        reason,
+      })),
+      updated_count: optionalNumber(response.updated_count) ?? 0,
+      failed_count: optionalNumber(response.failed_count) ?? items.length,
+    };
+  }
+
   const failures = Array.isArray(response.failures) ? response.failures : [];
   const results = items.map((item) => {
     const failure = failures.find(
       (candidate) =>
         candidate.product_id === item.product_id &&
-        (!candidate.product_color_id || candidate.product_color_id === item.product_color_id)
+        (!candidate.product_color_id ||
+          !item.product_color_id ||
+          candidate.product_color_id === item.product_color_id)
     );
     return failure
       ? {
@@ -81,4 +109,12 @@ export function toUpdateItemDetailsOutput(
     updated_count: optionalNumber(response.updated_count) ?? results.length - failedCount,
     failed_count: optionalNumber(response.failed_count) ?? failedCount,
   };
+}
+
+function summarizeUpdate(output: UpdateItemDetailsOutput): string {
+  if (output.updated_count === 0 && output.failed_count > 0) {
+    const reason = output.results.find((result) => result.reason)?.reason;
+    return `No items were updated; ${String(output.failed_count)} failed${reason ? ` (${reason})` : ''}.`;
+  }
+  return `Updated ${String(output.updated_count)} item(s); ${String(output.failed_count)} failed.`;
 }

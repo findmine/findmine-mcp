@@ -49,6 +49,11 @@ export function optionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
+/** Return the value when it is a boolean, else undefined. */
+export function optionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
 /**
  * Map a stored product to the `ProductRef` output shape. Upstream payloads are not
  * validated yet, so every field is checked at runtime; products without an ID are
@@ -68,6 +73,9 @@ export function toProductRef(product: ProductResource): ProductRef | undefined {
     image_url: optionalString(product.imageUrl),
     price: optionalNumber(product.price),
     formatted_price: optionalString(product.formattedPrice),
+    sale_price: optionalNumber(product.salePrice),
+    formatted_sale_price: optionalString(product.formattedSalePrice),
+    on_sale: optionalBoolean(product.onSale),
     uri: createProductUri(productId, colorId),
   };
 }

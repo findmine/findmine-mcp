@@ -113,17 +113,26 @@ export const ProductRefSchema = z.object({
   title: z.string().describe('Product title'),
   url: z.string().optional().describe('Product page URL'),
   image_url: z.string().optional().describe('Product image URL'),
-  price: z.number().optional().describe('Raw price as returned by FindMine'),
+  price: z.number().optional().describe('Raw regular price as returned by FindMine'),
   formatted_price: z
     .string()
     .optional()
-    .describe('Display-ready price; prefer this when showing prices'),
+    .describe('Display-ready regular price; show it when the product is not on sale'),
+  sale_price: z.number().optional().describe('Raw sale price as returned by FindMine'),
+  formatted_sale_price: z
+    .string()
+    .optional()
+    .describe('Display-ready sale price; show it when on_sale is true'),
+  on_sale: z.boolean().optional().describe('Whether the product is on sale'),
   uri: z.string().describe('product:/// resource URI; read it for full product details'),
 });
 
 export const LookSchema = z.object({
   look_id: z.string().describe('FindMine look ID'),
   uri: z.string().describe('look:/// resource URI; read it for full look details'),
+  title: z.string().optional().describe('Look title'),
+  description: z.string().optional().describe('Look description'),
+  image_url: z.string().optional().describe('Look image URL'),
   items: z.array(ProductRefSchema).describe('Products that make up the look'),
 });
 
@@ -131,7 +140,6 @@ export const GetCompleteTheLookOutputSchema = z.object({
   product: ProductRefSchema.optional().describe('The product the looks were built around'),
   looks: z.array(LookSchema),
   total_looks: z.number().int().nonnegative(),
-  reason: z.string().optional().describe('Why no looks were returned, when FindMine says so'),
 });
 
 export const SimilarProductSchema = ProductRefSchema.extend({

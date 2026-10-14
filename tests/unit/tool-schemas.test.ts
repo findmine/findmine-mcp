@@ -150,13 +150,27 @@ describe('registered tools', () => {
 describe('output mapping from unvalidated upstream data', () => {
   it('keeps complete-the-look output schema-valid when fields are null or products are missing', () => {
     const stored: Record<string, ProductResource> = {
-      P1: product({ id: 'P1', name: null, price: null, formattedPrice: null }),
+      P1: product({
+        id: 'P1',
+        name: null,
+        price: null,
+        formattedPrice: null,
+        salePrice: null,
+        formattedSalePrice: null,
+        onSale: 'yes',
+      }),
     };
     const output = toCompleteTheLookOutput(
       {
         product: product({ id: undefined }),
         looks: [
-          { id: 'L1', productIds: ['P1', 'P-UNSEEN', ''] },
+          {
+            id: 'L1',
+            title: 'Weekend',
+            description: null as unknown as string,
+            imageUrl: 'https://shop.example/looks/l1.jpg',
+            productIds: ['P1', 'P-UNSEEN', ''],
+          },
           { id: '', productIds: ['P1'] },
         ],
       },
@@ -166,10 +180,46 @@ describe('output mapping from unvalidated upstream data', () => {
     expect(GetCompleteTheLookOutputSchema.safeParse(output).success).toBe(true);
     expect(output.product).toBeUndefined();
     expect(output.total_looks).toBe(1);
+    expect(output.looks[0]).toMatchObject({
+      title: 'Weekend',
+      image_url: 'https://shop.example/looks/l1.jpg',
+    });
+    expect(output.looks[0].description).toBeUndefined();
     expect(output.looks[0].items).toEqual([
-      expect.objectContaining({ product_id: 'P1', title: 'P1', uri: 'product:///P1' }),
+      {
+        product_id: 'P1',
+        title: 'P1',
+        url: expect.any(String),
+        image_url: expect.any(String),
+        uri: 'product:///P1',
+      },
       { product_id: 'P-UNSEEN', title: 'P-UNSEEN', uri: 'product:///P-UNSEEN' },
     ]);
+  });
+
+  it('maps sale price fields onto ProductRef', () => {
+    const output = toVisuallySimilarOutput('P1', {
+      products: [
+        product({
+          id: 'P2',
+          price: 6999,
+          formattedPrice: '$69.99',
+          salePrice: 4999,
+          formattedSalePrice: '$49.99',
+          onSale: true,
+        }),
+      ],
+      total: 1,
+    });
+
+    expect(GetVisuallySimilarOutputSchema.safeParse(output).success).toBe(true);
+    expect(output.products[0]).toMatchObject({
+      price: 6999,
+      formatted_price: '$69.99',
+      sale_price: 4999,
+      formatted_sale_price: '$49.99',
+      on_sale: true,
+    });
   });
 
   it('drops visually similar products without an ID and falls back to the returned count', () => {
@@ -212,5 +262,60 @@ describe('output mapping from unvalidated upstream data', () => {
       updated_count: 1,
       failed_count: 1,
     });
+  });
+
+  it('fails every item when the response reports success: false', () => {
+    const items = [
+      { product_id: 'P1', in_stock: true, on_sale: false },
+      { product_id: 'P2', product_color_id: 'RED', in_stock: false, on_sale: false },
+    ];
+
+    const bare = toUpdateItemDetailsOutput(items, { success: false });
+    expect(UpdateItemDetailsOutputSchema.safeParse(bare).success).toBe(true);
+    expect(bare).toEqual({
+      results: [
+        { product_id: 'P1', ok: false, reason: 'FindMine reported the update failed' },
+        {
+          product_id: 'P2',
+          product_color_id: 'RED',
+          ok: false,
+          reason: 'FindMine reported the update failed',
+        },
+      ],
+      updated_count: 0,
+      failed_count: 2,
+    });
+
+    const withMessage = toUpdateItemDetailsOutput(items, {
+      success: false,
+      message: 'catalog locked',
+    });
+    expect(withMessage.results.map((result) => result.reason)).toEqual([
+      'catalog locked',
+      'catalog locked',
+    ]);
+  });
+
+  it('matches a color-specific failure to an item sent without a color', () => {
+    const output = toUpdateItemDetailsOutput(
+      [
+        { product_id: 'P1', in_stock: true, on_sale: false },
+        { product_id: 'P3', product_color_id: 'BLU', in_stock: true, on_sale: false },
+      ],
+      {
+        success: true,
+        failures: [
+          { product_id: 'P1', product_color_id: 'RED', reason: 'unknown color' },
+          { product_id: 'P3', product_color_id: 'RED', reason: 'unknown color' },
+        ],
+      }
+    );
+
+    expect(output.results).toEqual([
+      { product_id: 'P1', ok: false, reason: 'unknown color' },
+      { product_id: 'P3', product_color_id: 'BLU', ok: true },
+    ]);
+    expect(output.updated_count).toBe(1);
+    expect(output.failed_count).toBe(1);
   });
 });

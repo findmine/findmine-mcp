@@ -29,8 +29,9 @@ export const chinos: FindMineProduct = {
   url: 'https://shop.example/p200',
   image_url: 'https://shop.example/p200.jpg',
   price: 6999,
+  sale_price: 4999,
   in_stock: true,
-  on_sale: false,
+  on_sale: true,
   category: 'Pants',
 };
 
@@ -53,7 +54,15 @@ export interface FakeResponses {
 const defaultResponses: Required<FakeResponses> = {
   completeTheLook: {
     pdp_item: shirt,
-    looks: [{ look_id: 'L1', title: 'Office Ready', products: [shirt, chinos] }],
+    looks: [
+      {
+        look_id: 'L1',
+        title: 'Office Ready',
+        description: 'Sharp but relaxed for the office',
+        image_url: 'https://shop.example/looks/l1.jpg',
+        products: [shirt, chinos],
+      },
+    ],
   },
   visuallySimilar: { products: [chinos], total: 1 },
   analytics: { success: true, event_id: 'E1' },

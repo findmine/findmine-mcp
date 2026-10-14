@@ -107,7 +107,7 @@ function buildInstructions(config: ServerConfig): string {
     lines.push('- update_item_details: change the stock and sale status of catalog items.');
   }
   lines.push(
-    'Results reference product:/// and look:/// resource URIs that can be read for full details. Use formatted_price when showing prices.'
+    'Results reference product:/// and look:/// resource URIs that can be read for full details. When showing prices, use formatted_sale_price if on_sale is true, otherwise formatted_price.'
   );
   return lines.join('\n');
 }

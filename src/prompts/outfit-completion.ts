@@ -61,7 +61,7 @@ export function buildOutfitCompletionPrompt(
     role: 'user',
     content: {
       type: 'text',
-      text: `Call the get_complete_the_look tool with ${toolArgs} to get FindMine's recommended looks. Then explain why the items in each look work well together and give styling advice${occasionClause}: color coordination, occasion appropriateness, and pricing (use formatted_price for display). Include any other relevant fashion tips for the customer.`,
+      text: `Call the get_complete_the_look tool with ${toolArgs} to get FindMine's recommended looks. Then explain why the items in each look work well together and give styling advice${occasionClause}: color coordination, occasion appropriateness, and pricing (show formatted_sale_price when on_sale is true, otherwise formatted_price). Include any other relevant fashion tips for the customer.`,
     },
   });
 

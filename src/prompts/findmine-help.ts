@@ -49,7 +49,7 @@ Resources become readable once a tool call has returned them.
 
 ## Tips for Effective Usage
 
-1. When discussing prices, use the formatted price fields (\`formatted_price\` in tool results) for correct display
+1. When discussing prices, use the formatted fields from tool results: \`formatted_sale_price\` when \`on_sale\` is true, otherwise \`formatted_price\`
 2. Combine \`get_complete_the_look\` with styling advice to create comprehensive outfit recommendations
 3. Use \`get_visually_similar\` to offer alternatives when a product is out of stock
 4. Reference the style guide when providing fashion advice to ensure consistency and quality`;
