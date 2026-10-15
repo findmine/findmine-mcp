@@ -21,6 +21,10 @@ This MCP server connects to FindMine's styling API and exposes its functionality
 - **get_style_guide**: Access detailed fashion advice and styling guidelines
 - **get_complete_the_look**: Get outfit recommendations for a product
 - **get_visually_similar**: Find visually similar products
+- **track_interaction**: Record shopper interactions (only when `FINDMINE_ENABLE_TRACKING=true`)
+- **update_item_details**: Update item stock and sale status (only when `FINDMINE_ENABLE_ITEM_UPDATES=true`)
+
+Every tool declares a title, behavior annotations, and an output schema, and returns structured results.
 
 ### Prompts
 - **outfit_completion**: Get styling advice for complete outfits
@@ -76,20 +80,24 @@ npm run watch
 | `FINDMINE_DEFAULT_LANGUAGE` | Default language code | en |
 | `FINDMINE_CACHE_ENABLED` | Enable response caching | true |
 | `FINDMINE_CACHE_TTL_MS` | Cache time-to-live in ms | 3600000 (1 hour) |
-| `NODE_ENV` | Set to "development" for sample data | - |
+| `FINDMINE_ENABLE_TRACKING` | Register the `track_interaction` tool | false |
+| `FINDMINE_ENABLE_ITEM_UPDATES` | Register the `update_item_details` tool | false |
+| `FINDMINE_DEBUG` | Log debug output to stderr | false |
 
 ## Usage with Claude Desktop
 
-The server automatically configures Claude Desktop during installation. To verify:
+Installation does not change any Claude Desktop settings. Add the server to `claude_desktop_config.json` yourself (macOS: `~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`), pointing at your build:
 
-**macOS:**
-```bash
-cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
-```
-
-**Windows:**
-```
-type %APPDATA%\Claude\claude_desktop_config.json
+```json
+{
+  "mcpServers": {
+    "findmine": {
+      "command": "node",
+      "args": ["/absolute/path/to/findmine-mcp/build/index.js"],
+      "env": { "FINDMINE_APP_ID": "your_app_id" }
+    }
+  }
+}
 ```
 
 ## Development
@@ -119,7 +127,7 @@ npm run inspector         # Run MCP inspector (http://localhost:5173)
 
 ### Testing
 
-This project uses Vitest for testing. Tests are located in `__tests__/` directories alongside source files.
+This project uses Vitest for testing. Tests live in `tests/unit/` and `tests/integration/`; the integration suite drives the server in-process with the MCP SDK v2 client on both supported protocol revisions.
 
 ```bash
 # Run tests in watch mode
@@ -147,28 +155,20 @@ The project uses:
 - **Vitest** for testing
 - **GitHub Actions** for CI/CD
 
-### Development Mode
-
-Run the server with sample data:
-
-```bash
-NODE_ENV=development npm run build && node build/index.js
-```
-
 ### Customizing the Style Guide
 
 The style guide can be customized to match your brand's specific styling philosophies and fashion guidance. To customize the style guide:
 
 1. Locate the style guides in `src/content/style-guides.ts`
 2. Modify the content for each category (`general`, `color_theory`, `body_types`, etc.)
-3. Add new categories by extending the `styleGuides` object
+3. Add new categories by adding the name to `STYLE_GUIDE_CATEGORIES` and its content to the `styleGuides` object (the tool and prompt schemas pick up the new category automatically)
 4. Customize occasion-specific and seasonal advice
 
 Example of adding a custom style guide category:
 
 ```typescript
-// In src/content/style-guides.ts
-export const styleGuides: Record<string, string> = {
+// In src/content/style-guides.ts (after adding 'your_brand_style' to STYLE_GUIDE_CATEGORIES)
+export const styleGuides: Record<StyleGuideCategory, string> = {
   // Existing categories...
 
   // Add your custom category
@@ -192,53 +192,37 @@ export const styleGuides: Record<string, string> = {
 };
 ```
 
-For complete customization, you can modify the entire `get_style_guide` handler in `src/handlers/tools.ts`.
+For complete customization, you can modify the `get_style_guide` tool in `src/tools/get-style-guide.ts`.
 
 ### Project Structure
 
 ```
 src/
-├── index.ts              # MCP server bootstrap and initialization
+├── index.ts              # stdio bin (serveStdio)
+├── server.ts             # createFindMineDeps() + createFindMineServer(deps, { extend })
 ├── config.ts             # Environment configuration
 ├── api/                  # FindMine API client
-│   └── findmine-client.ts
-├── handlers/             # MCP protocol handlers
-│   ├── tools.ts          # Tool execution handlers
-│   ├── resources.ts      # Resource handlers
-│   └── prompts.ts        # Prompt handlers
-├── tools/                # Tool definitions with MCP annotations
-│   └── index.ts
-├── schemas/              # Zod validation schemas
-│   ├── tool-inputs.ts    # Input validation for all tools
-│   └── index.ts
-├── content/              # Static content
-│   └── style-guides.ts   # Style guide content
-├── prompts/              # Prompt definitions
-│   ├── findmine-help.ts
-│   ├── outfit-completion.ts
-│   ├── styling-guide.ts
-│   └── index.ts
-├── services/             # Business logic layer
-│   └── findmine-service.ts
+├── tools/                # Tool registrations, Zod input/output schemas (schemas.ts)
+├── resources/            # product:/// and look:/// resource templates and URI helpers
+├── prompts/              # Prompts with Zod argument schemas
+├── content/              # Style guide content
+├── services/             # Business logic layer (caching, resource store)
 ├── types/                # TypeScript type definitions
-│   ├── findmine-api.ts
-│   └── mcp.ts
-└── utils/                # Utility functions and helpers
-    ├── cache.ts
-    ├── formatters.ts
-    ├── logger.ts
-    ├── mock-data.ts
-    └── resource-mapper.ts
+└── utils/                # Cache, formatters, logger, resource mapping
+tests/
+├── unit/
+├── integration/
+└── fakes/
 ```
 
 ### Technical Details
 
 This server is built with:
-- **MCP SDK 1.24.2** with full spec compliance (2025-11-25)
-- **Tool annotations** for read-only, destructive, and open-world hints
-- **Zod validation** for all tool inputs
+- **MCP TypeScript SDK v2** (`@modelcontextprotocol/server`), serving protocol revisions 2025-11-25 and 2026-07-28 over stdio
+- **Tool titles, annotations** (read-only, destructive, idempotent, open-world hints) and **output schemas** with structured results
+- **Zod 4 schemas** for all tool inputs and outputs
 - **Modular architecture** with separated concerns
-- **100% test coverage** on utility functions
+- **Vitest** unit tests and in-process integration tests
 
 ## API Examples
 

@@ -1,87 +1,69 @@
 /**
- * Handler for the outfit_completion prompt.
- * Provides styling advice and complete outfit for a product.
+ * outfit_completion prompt — styling advice and a complete outfit for a product.
  */
 
-import { logger } from '../utils/logger.js';
-import { findMineService } from '../services/findmine-service.js';
-import { createProductUri, createLookUri } from '../types/mcp.js';
-import { getProductMimeType, getLookMimeType } from '../utils/resource-mapper.js';
-import { sampleProducts, sampleLooks } from '../utils/mock-data.js';
-import { PromptResult } from './index.js';
+import type { GetPromptResult } from '@modelcontextprotocol/server';
+import { z } from 'zod';
+import { PRODUCT_MIME_TYPE, createProductUri } from '../resources/uris.js';
+import type { ProductResource } from '../types/mcp.js';
+
+export const OutfitCompletionArgsSchema = z.object({
+  product_id: z.string().min(1).describe('ID of the product to build outfits around'),
+  product_color_id: z.string().optional().describe('Color ID of the product (if applicable)'),
+  occasion: z
+    .string()
+    .optional()
+    .describe('Occasion to style for (e.g., office, wedding, date_night)'),
+});
+
+export type OutfitCompletionArgs = z.infer<typeof OutfitCompletionArgsSchema>;
 
 /**
- * Handles the outfit_completion prompt request
- * @returns Prompt messages for outfit completion
+ * Build the prompt messages. When the product has already been returned by a tool
+ * call, its details are embedded so the model does not need a separate read.
  */
-export function handleOutfitCompletionPrompt(): PromptResult {
-  // For the outfit completion prompt, we'll use sample data products and looks
-  const product = sampleProducts[0];
-  const look = sampleLooks[0];
+export function buildOutfitCompletionPrompt(
+  args: OutfitCompletionArgs,
+  knownProduct?: ProductResource
+): GetPromptResult {
+  const { product_id, product_color_id, occasion } = args;
+  const colorClause = product_color_id ? ` in color ${product_color_id}` : '';
+  const occasionClause = occasion ? ` for ${occasion.replace(/_/g, ' ')}` : '';
+  const toolArgs = JSON.stringify(
+    product_color_id ? { product_id, product_color_id } : { product_id }
+  );
 
-  // Create resource references for the prompt
-  const productResource = findMineService.getProduct(product.product_id || '');
-  const lookResource = findMineService.getLook(look.look_id || '');
-
-  if (!productResource || !lookResource) {
-    logger.error('Sample product or look not found for outfit_completion prompt');
-    return {
-      error: {
-        message: 'Sample product or look not found',
-        code: 'RESOURCE_NOT_FOUND',
+  const messages: GetPromptResult['messages'] = [
+    {
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `I'm looking for outfit ideas${occasionClause} for product ${product_id}${colorClause}.`,
       },
-    };
+    },
+  ];
+
+  if (knownProduct) {
+    messages.push({
+      role: 'user',
+      content: {
+        type: 'resource',
+        resource: {
+          uri: createProductUri(knownProduct.id, knownProduct.colorId),
+          mimeType: PRODUCT_MIME_TYPE,
+          text: JSON.stringify(knownProduct, null, 2),
+        },
+      },
+    });
   }
 
-  const productUri = createProductUri(productResource.id, productResource.colorId);
-  const lookUri = createLookUri(lookResource.id);
+  messages.push({
+    role: 'user',
+    content: {
+      type: 'text',
+      text: `Call the get_complete_the_look tool with ${toolArgs} to get FindMine's recommended looks. Then explain why the items in each look work well together and give styling advice${occasionClause}: color coordination, occasion appropriateness, and pricing (show formatted_sale_price when on_sale is true, otherwise formatted_price). Include any other relevant fashion tips for the customer.`,
+    },
+  });
 
-  return {
-    success: true,
-    messages: [
-      {
-        role: 'user',
-        content: {
-          type: 'text',
-          text: "I'm looking for outfit ideas for this product:",
-        },
-      },
-      {
-        role: 'user',
-        content: {
-          type: 'resource',
-          resource: {
-            uri: productUri,
-            mimeType: getProductMimeType(),
-            text: JSON.stringify(productResource, null, 2),
-          },
-        },
-      },
-      {
-        role: 'user',
-        content: {
-          type: 'text',
-          text: "Here's a recommended complete outfit:",
-        },
-      },
-      {
-        role: 'user',
-        content: {
-          type: 'resource',
-          resource: {
-            uri: lookUri,
-            mimeType: getLookMimeType(),
-            text: JSON.stringify(lookResource, null, 2),
-          },
-        },
-      },
-      {
-        role: 'user',
-        content: {
-          type: 'text',
-          text: 'Please explain why these items work well together and provide styling advice for this outfit. Include information about color coordination, occasion appropriateness, and pricing (use the formattedPrice or formattedSalePrice fields for accurate price display). Include any other relevant fashion tips for the customer.',
-        },
-      },
-    ],
-  };
+  return { messages };
 }

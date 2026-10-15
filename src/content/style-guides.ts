@@ -1,9 +1,24 @@
 /**
- * Static style guide content for the get_style_guide tool.
+ * Static style guide content for the get_style_guide tool and styling_guide prompt.
  * Organized by category with comprehensive fashion and styling advice.
  */
 
-export const styleGuides: Record<string, string> = {
+/**
+ * The style guide categories. This list is the single source of truth: the tool and
+ * prompt Zod enums are built from it, and `styleGuides` must provide every entry.
+ */
+export const STYLE_GUIDE_CATEGORIES = [
+  'general',
+  'color_theory',
+  'body_types',
+  'casual_outfits',
+  'formal_outfits',
+  'seasonal',
+] as const;
+
+export type StyleGuideCategory = (typeof STYLE_GUIDE_CATEGORIES)[number];
+
+export const styleGuides: Record<StyleGuideCategory, string> = {
   general: `# General Style Guide
 
 ## Understanding Customer Needs
@@ -298,4 +313,23 @@ export function getSeasonAdvice(fashion_season: string): string {
 - Layer appropriately for the weather
 - Consider seasonal occasions and activities
 - Adapt basic style principles to seasonal needs`;
+}
+
+/**
+ * Compose the style guide markdown for a category, with optional occasion and
+ * season appendices.
+ */
+export function composeStyleGuide(
+  category: StyleGuideCategory,
+  occasion?: string,
+  fashionSeason?: string
+): string {
+  let markdown = styleGuides[category];
+  if (occasion) {
+    markdown += getOccasionAdvice(occasion);
+  }
+  if (fashionSeason) {
+    markdown += getSeasonAdvice(fashionSeason);
+  }
+  return markdown;
 }

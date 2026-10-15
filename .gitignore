@@ -8,3 +8,8 @@ coverage/
 
 # Test utilities
 test-mcp.js
+
+# Local agent and tracker workspaces (never commit)
+.context/
+.claude/
+.linear.toml

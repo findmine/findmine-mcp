@@ -78,25 +78,28 @@ export interface ServerConfig {
 }
 
 /**
- * Default server configuration
+ * Build the server configuration from environment variables.
+ * Pure: reads only the `env` it is given, so tests and embedders can pass their own.
  */
-export const config: ServerConfig = {
-  findmine: {
-    apiBaseUrl: process.env.FINDMINE_API_URL || 'https://api.findmine.com',
-    applicationId: process.env.FINDMINE_APP_ID || 'DEMO_APP_ID',
-    apiVersion: process.env.FINDMINE_API_VERSION || 'v3',
-    defaultRegion: process.env.FINDMINE_DEFAULT_REGION || 'us',
-    defaultLanguage: process.env.FINDMINE_DEFAULT_LANGUAGE || 'en',
-  },
-  session: {
-    defaultSessionId: process.env.FINDMINE_DEFAULT_SESSION_ID || 'mcp-default-session',
-  },
-  cache: {
-    enabled: process.env.FINDMINE_CACHE_ENABLED !== 'false',
-    ttlMs: parseInt(process.env.FINDMINE_CACHE_TTL_MS || '3600000', 10), // Default: 1 hour
-  },
-  features: {
-    enableTracking: process.env.FINDMINE_ENABLE_TRACKING === 'true',
-    enableItemDetailsUpdates: process.env.FINDMINE_ENABLE_ITEM_UPDATES === 'true',
-  },
-};
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
+  return {
+    findmine: {
+      apiBaseUrl: env.FINDMINE_API_URL || 'https://api.findmine.com',
+      applicationId: env.FINDMINE_APP_ID || 'DEMO_APP_ID',
+      apiVersion: env.FINDMINE_API_VERSION || 'v3',
+      defaultRegion: env.FINDMINE_DEFAULT_REGION || 'us',
+      defaultLanguage: env.FINDMINE_DEFAULT_LANGUAGE || 'en',
+    },
+    session: {
+      defaultSessionId: env.FINDMINE_DEFAULT_SESSION_ID || 'mcp-default-session',
+    },
+    cache: {
+      enabled: env.FINDMINE_CACHE_ENABLED !== 'false',
+      ttlMs: parseInt(env.FINDMINE_CACHE_TTL_MS || '3600000', 10), // Default: 1 hour
+    },
+    features: {
+      enableTracking: env.FINDMINE_ENABLE_TRACKING === 'true',
+      enableItemDetailsUpdates: env.FINDMINE_ENABLE_ITEM_UPDATES === 'true',
+    },
+  };
+}
