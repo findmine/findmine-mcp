@@ -231,7 +231,7 @@ export class FindMineClient implements FindMineApi {
         headers = response.headers;
         text = await response.text();
       } catch (error) {
-        if (error instanceof Error && error.name === 'TimeoutError') {
+        if (isTimeoutError(error)) {
           throw new FindMineApiError(`${label} timed out after ${String(this.config.timeoutMs)}ms`);
         }
         const message = describeNetworkError(error);
@@ -325,6 +325,19 @@ function retryAfterMs(header: string | null): number | undefined {
 
 function joinList(values: Array<string | number | undefined> | undefined): string | undefined {
   return values && values.length > 0 ? values.join(',') : undefined;
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+    return true;
+  }
+  if (error.cause instanceof Error) {
+    return error.cause.name === 'TimeoutError' || error.cause.name === 'AbortError';
+  }
+  return false;
 }
 
 function describeNetworkError(error: unknown): string {
